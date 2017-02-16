@@ -1,4 +1,4 @@
-function [v_out,V_out,V_in,Kx,Ky,Prop,prop]=propagation(v_in,x,y,z,lambda,sw)    
+function [v_out,V_out,V_in,K_x,K_y,Prop,prop]=propagation(v_in,x,y,z,lambda,sw)    
 % Propagation over a predefined distance    
 % Solution to the Helmholtz equation    
 % All spatial coordinates in the unit of the wavelength    
@@ -60,8 +60,8 @@ function [v_out,V_out,V_in,Kx,Ky,Prop,prop]=propagation(v_in,x,y,z,lambda,sw)
     if (strcmp(sw,'lens'))
         
         n_lens=1.2; %refractive index of glass
-        R_1=+200; %radius of lens  in(in um)
-        R_2=-200; %radius of lens out(in um)
+        R_1=+50; %radius of lens  in(in um)
+        R_2=-50; %radius of lens out(in um)
         delta_0=0;
         V_in =  fftshift(fft2(v_in));
         f = 1/((n_lens-1).*(1/R_1 - 1/R_2))       
@@ -69,10 +69,12 @@ function [v_out,V_out,V_in,Kx,Ky,Prop,prop]=propagation(v_in,x,y,z,lambda,sw)
                   +R_2.*(1 -sqrt(1-((x.^2 +y.^2)./(R_2^2))));
         prop =  exp(-1i*k*n_lens*delta_0) .* ...
                 exp(-1i*k*(n_lens-1) .* deltaxy);
-        v_out = v_in .*prop;
+        Prop =  fftshift(fft2(prop));
+        %v_out = v_in .*prop;
+        v_out = V_in .*prop;
         Prop=fftshift(fft2(prop));
         V_out=V_in.*prop;
-        %v_out=ifft2(ifftshift(V_out));   
+        v_out=ifft2(ifftshift(v_out));   
     end
     
     if (strcmp(sw,'biDFT'))
