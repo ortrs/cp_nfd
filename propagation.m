@@ -14,49 +14,25 @@ function [v_out,V_out,V_in,K_x,K_y,Prop,prop]=propagation(v_in,x,y,z,lambda,sw)
     % "manDFT" = Manual DFT. Slow and probably would crash
     % "redDFT" = reduced DFT. Using vectorization
     % "biDFT" = built-in DFT. 
-
+    
+    %wave-vector defintion
     k = 2*pi/lambda;
+    %Pixel size dimensions
     [Nx,Ny] = size(v_in);
-    deltax = max(max(x))/(Nx-1);
+    %delta_x,y definition
+    deltax = max(max(x))/(Nx-1); %-1 factor for odd-numbered pixels
     deltay = max(max(y))/(Ny-1);
-    const = (1./(Nx*Ny));
+    const = (1./(Nx*Ny)); % Normalization constant
+    %Initial definition for field size
     Kx = linspace(Nx/4/min(min(x)),Ny/4/max(max(x)),Nx);
     Ky = linspace(Ny/4/min(min(y)),Ny/4/max(max(y)),Ny);
+    %Preferred definition of field size
     K_x= linspace(-pi/deltax,pi/deltax,Nx);
     K_y= linspace(-pi/deltay,pi/deltay,Nx);
+    % Mesh grid definitions
     [Kx,Ky] = meshgrid(Kx,Ky);
     [K_x,K_y] = meshgrid(K_x,K_y);
-% obj_size = size(v_in);
-% phy_x = max(max(x)); 
-% phy_y = max(max(y)); 
-    
-% Fs_x = obj_size(2)/phy_x; 
-% Fs_y = obj_size(1)/phy_y; 
-% dx2 = Fs_x^(-1); 
-% dy2 = Fs_y^(-1); 
-% %x2 = dx2*(0:(obj_size(2) - 1))'; 
-% %y2 = dy2*(0:(obj_size(1) - 1))'; 
-% dFx = Fs_x/obj_size(2); 
-% dFy = Fs_y/obj_size(1); 
-% Fx = (-Fs_x/2:dFx:(Fs_x/2)); 
-% Fy = (-Fs_y/2:dFy:(Fs_y/2)); 
-% %Fx = (-Fs_x/2:dFx:(Fs_x/2 - dFx)); %this applies for non-symmetric things
 
-%Fy = (-Fs_y/2:dFy:(Fs_y/2 - dFy)); 
-
-% alpha = lambda.*Fx; 
-% beta = lambda.*Fy; % gamma 
-% 
-% gama = zeros(length(beta), length(alpha)); 
-% for j = 1:length(beta);     
-%    for i = 1:length(alpha);         
-%        if (alpha(i)^2 + beta(j)^2) > 1;             
-%            gama(j, i) = 0;         
-%        else
-%            gama(j, i) = sqrt(1 - alpha(i)^2 - beta(j)^2);        
-%        end;     
-%    end; 
-% end; 
     if (strcmp(sw,'lens'))
         
         n_lens=1.2; %refractive index of glass
@@ -64,11 +40,13 @@ function [v_out,V_out,V_in,K_x,K_y,Prop,prop]=propagation(v_in,x,y,z,lambda,sw)
         R_2=-50; %radius of lens out(in um)
         delta_0=0;
         V_in =  fftshift(fft2(v_in));
+        %focal point calculation
         f = 1/((n_lens-1).*(1/R_1 - 1/R_2))       
         deltaxy = -R_1.*(1 -sqrt(1-((x.^2 +y.^2)./(R_1^2))) ) ...
                   +R_2.*(1 -sqrt(1-((x.^2 +y.^2)./(R_2^2))));
         prop =  exp(-1i*k*n_lens*delta_0) .* ...
                 exp(-1i*k*(n_lens-1) .* deltaxy);
+        %propagator definition
         Prop =  fftshift(fft2(prop));
         %v_out = v_in .*prop;
         v_out = V_in .*prop;
@@ -78,14 +56,20 @@ function [v_out,V_out,V_in,K_x,K_y,Prop,prop]=propagation(v_in,x,y,z,lambda,sw)
     end
     
     if (strcmp(sw,'biDFT'))
+       %FFT of input field
        V_in =  fftshift(fft2(v_in));
        %Prop = exp ((1i).*sqrt(k^2 - Kx.^2 -Ky.^2).* z);
-       Prop = sqrt(k^2 - K_x.^2 -K_y.^2).* z;
+       %Propagator definition in reciprocal space
+       Prop = (1i.*sqrt(k^2 - K_x.^2 -K_y.^2).*z);
        %Prop = sqrt(k^2 - Kx.^2 -Ky.^2).* z;
+       %Euclidean (i.e. Actual) space propagator (visualization only)
        prop = ifft2(fftshift(Prop));
+       %Reciprocal space output field 
        V_out = V_in .*  exp (1i.*sqrt(k^2 - K_x.^2 -K_y.^2).*z);
        %V_out = V_in .*  exp (1i.*sqrt(k^2 - Kx.^2 -Ky.^2).*z);
        %V_out = fftshift(V_out);
+       
+       %Euclidean space output field 
        v_out = ifft2(ifftshift(V_out));
     end
        
